@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
+const sgMail = require("@sendgrid/mail");
 var cron = require("node-cron");
 var { v4: uuidv4 } = require("uuid");
 const bodyparser = require("body-parser");
@@ -14,6 +15,7 @@ require("dotenv").config();
 app.use(cors());
 app.use(bodyparser());
 app.use(express.json());
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 mongoose
   .connect(
     `mongodb+srv://Admin:H1nZbhTiIGoAJdly@cluster0.aclj0.mongodb.net/SaaS?retryWrites=true&w=majority`,
@@ -125,6 +127,7 @@ let sendNotifications = cron.schedule("* * * * * *", () => {
 
 const sendEmail = (data) => {
   console.log(data);
+  console.log("Logging from send Email");
   Remainder.findByIdAndUpdate(
     { _id: data.id },
     {
@@ -134,38 +137,78 @@ const sendEmail = (data) => {
     },
     { new: true, useFindAndModify: false },
     (err, response) => {
-      console.log(response);
-      message = {
-        from: "k.giridharkrishna@gmail.com",
-        to: `${response.emailId}`,
-        subject: "Remainder",
-        text: `Hi ${response.emailId} You have an remainder with title ${response.title} and the message is ${response.message}`,
+      const msg = {
+        to: data.emailId,
+        from: "k.giridharkrishna@gmail.com", // Use the email address or domain you verified above
+        subject: `Remainder for ${data.title}`,
+        text: "Hello",
+        html: `<strong>${data.message}</strong>`,
       };
-      mail(message);
+      //ES6
+      sgMail.send(msg).then(
+        () => {
+          console.log("Email Sent Successfully");
+        },
+        (error) => {
+          console.log(error);
+
+          if (error.response) {
+            console.log(error.response.body);
+          }
+        }
+      );
+      //ES8
+      (async () => {
+        try {
+          await sgMail.send(msg);
+        } catch (error) {
+          console.log(error);
+
+          if (error.response) {
+            console.log(error.response.body);
+          }
+        }
+      })();
     }
   );
-};
-if (statusUpdate === 0) sendNotifications.stop();
-
-let transporter = nodemailer.createTransport({
-  host: "smtp.mandrillapp.com",
-  port: 587,
-  auth: {
-    user: "GiridharKrishna",
-    pass: "57WGtX4BBIGZv7yp9MHXHg",
-  },
-});
-
-const mail = (message) => {
-  transporter.sendMail(message, function (err, info) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log(info);
-    }
-  });
 };
 
 app.listen(PORT, () => {
   console.log(`Server is up and running at PORT:${PORT}`);
+});
+
+app.post("/send/email", (req, res) => {
+  console.log(req.body);
+  const msg = {
+    to: req.body.toEmail,
+    from: req.body.fromEmail, // Use the email address or domain you verified above
+    subject: "Testing From Backend",
+    text: "Hello",
+    html: "<strong>Hi Giridhar</strong>",
+  };
+  //ES6
+  sgMail.send(msg).then(
+    () => {
+      res.send(msg);
+    },
+    (error) => {
+      console.log(error);
+
+      if (error.response) {
+        console.log(error.response.body);
+      }
+    }
+  );
+  //ES8
+  (async () => {
+    try {
+      await sgMail.send(msg);
+    } catch (error) {
+      console.log(error);
+
+      if (error.response) {
+        console.log(error.response.body);
+      }
+    }
+  })();
 });
