@@ -18,7 +18,7 @@ app.use(express.json());
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 mongoose
   .connect(
-    `mongodb+srv://Admin:H1nZbhTiIGoAJdly@cluster0.aclj0.mongodb.net/SaaS?retryWrites=true&w=majority`,
+    `********DB_CONNECTION**********`,
     {
       useNewUrlParser: true,
       useUnifiedTopology: true,
